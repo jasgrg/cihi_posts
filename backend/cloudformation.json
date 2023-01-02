@@ -1,0 +1,117 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "AWS CloudFormation Template To Create a DynamoDB with Lambda Role",
+    "Parameters": {
+
+    },
+    "Resources": {
+        "FunctionSetToken": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "FunctionName": "CIHI-TokenSet",
+                "Handler": "index.handler",
+                "Runtime": "python3.7",
+                "Code": {
+                    "ZipFile": "import json\ndef handler(event, context) :\n  print(\"Event: %s\" % json.dumps(event))\n"
+                },
+                "Role": {
+                    "Fn::GetAtt": [
+                        "LambdaExecutionRole",
+                        "Arn"
+                    ]
+                },
+                "Timeout": "2"
+            },
+            "DependsOn": [
+                "LambdaExecutionRole"
+            ]
+        },
+        "FunctionSendEmail": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "FunctionName": "CIHI-SendEmail",
+                "Handler": "index.handler",
+                "Runtime": "python3.7",
+                "Code": {
+                    "ZipFile": "import json\ndef handler(event, context) :\n  print(\"Event: %s\" % json.dumps(event))\n"
+                },
+                "Role": {
+                    "Fn::GetAtt": [
+                        "LambdaExecutionRole",
+                        "Arn"
+                    ]
+                },
+                "Timeout": "2"
+            },
+            "DependsOn": [
+                "LambdaExecutionRole"
+            ]
+        },
+        "CIHIAppSecret": {
+            "Type": "AWS::SecretsManager::Secret",
+            "Properties": {
+                "Name": "CIHI-app",
+                "Description": "Simple secret created by AWS CloudFormation.",
+                "SecretString": "{\"token\": \"\"}"
+            }
+        },
+        "LambdaExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "Policies": [
+                    {
+                        "PolicyName": "CIHIPolicy",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Resource": [
+                                        "arn:aws:logs:*:*:*"
+                                    ],
+                                    "Effect": "Allow"
+                                },
+                                {
+                                    "Action" : [
+                                        "secretsmanager:*"
+                                    ],
+                                    "Resource": [
+                                        "arn:aws:secretsmanager:us-east-1:872336816616:secret:CIHI-app-*"
+                                    ],
+                                    "Effect" : "Allow"
+                                },
+                                {
+                                    "Action": [
+                                        "s3:*"
+                                    ],
+                                    "Resource": "*",
+                                    "Effect": "Allow"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}
